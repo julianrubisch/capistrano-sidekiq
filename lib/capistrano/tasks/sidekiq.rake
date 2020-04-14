@@ -44,7 +44,7 @@ namespace :sidekiq do
       switch_user(role) do
         case fetch(:init_system)
         when :systemd
-          execute :systemctl, "--user", "reload", fetch(:service_unit_name), raise_on_non_zero_exit: false
+          sudo :systemctl, "reload", fetch(:service_unit_name), raise_on_non_zero_exit: false
         when :upstart
           sudo :service, fetch(:upstart_service_name), :reload
         else
@@ -66,7 +66,7 @@ namespace :sidekiq do
       switch_user(role) do
         case fetch(:init_system)
         when :systemd
-          execute :systemctl, "--user", "stop", fetch(:service_unit_name)
+          sudo :systemctl, "stop", fetch(:service_unit_name)
         when :upstart
           sudo :service, fetch(:upstart_service_name), :stop
         else
@@ -88,7 +88,7 @@ namespace :sidekiq do
       switch_user(role) do
         case fetch(:init_system)
         when :systemd
-          execute :systemctl, '--user', 'start', fetch(:service_unit_name)
+          sudo :systemctl, 'start', fetch(:service_unit_name)
         when :upstart
           sudo :service, fetch(:upstart_service_name), :start
         else
@@ -129,7 +129,7 @@ namespace :sidekiq do
         each_process_with_index do |pid_file, _idx|
           unless process_exists?(pid_file)
             next unless pid_file_exists?(pid_file)
-            execute "rm #{pid_file}"
+            sudo "rm #{pid_file}"
           end
         end
       end
@@ -155,7 +155,7 @@ namespace :sidekiq do
         case fetch(:init_system)
         when :systemd
           create_systemd_template
-          execute :systemctl, "--user", "enable", fetch(:service_unit_name)
+          sudo :systemctl, "enable", fetch(:service_unit_name)
         end
       end
     end
@@ -166,8 +166,8 @@ namespace :sidekiq do
       switch_user(role) do
         case fetch(:init_system)
         when :systemd
-          execute :systemctl, "--user", "disable", fetch(:service_unit_name)
-          execute :rm, File.join(fetch(:service_unit_path, fetch_systemd_unit_path),fetch(:service_unit_name))
+          sudo :systemctl, "disable", fetch(:service_unit_name)
+          sudo :rm, File.join(fetch(:service_unit_path, fetch_systemd_unit_path),fetch(:service_unit_name))
         end
       end
     end
@@ -198,12 +198,12 @@ namespace :sidekiq do
     template_path = search_paths.detect {|path| File.file?(path)}
     template = File.read(template_path)
     systemd_path = fetch(:service_unit_path, fetch_systemd_unit_path)
-    execute :mkdir, "-p", systemd_path
+    # execute :mkdir, "-p", systemd_path
     upload!(
       StringIO.new(ERB.new(template).result(binding)),
       "#{systemd_path}/#{fetch :service_unit_name}"
     )
-    execute :systemctl, "--user", "daemon-reload"
+    sudo :systemctl, "daemon-reload"
   end
 
   def pid_files
